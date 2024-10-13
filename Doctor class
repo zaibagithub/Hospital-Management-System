@@ -1,0 +1,52 @@
+package HospitalManagementSystem;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+public class Doctors {
+    private Connection connection;
+
+    public Doctors(Connection connection){
+        this.connection = connection;
+    }
+
+    public void viewDoctors(){
+        String sql = "SELECT * FROM doctors";
+        try{
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+            System.out.println("Doctors List");
+            System.out.println("+-----------+----------------+---------------+");
+            System.out.println("| Doctor Id | Doctor Name    | Specialization|");
+            System.out.println("+-----------+----------------+---------------+");
+            while(rs.next()){
+                int doctorId = rs.getInt("id");
+                String doctorName = rs.getString("name");
+                String specialization = rs.getString("specialization");
+                System.out.printf("| %-9s | %-14s | %-13s |\n",doctorId,doctorName,specialization);
+                System.out.println("+-----------+----------------+---------------+");
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public boolean getDoctorById(int id){
+        String sql = "SELECT * FROM doctors WHERE id = ?";
+        try{
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1,id);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return true;
+            }else{
+                return false;
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+}
