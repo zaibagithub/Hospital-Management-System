@@ -1,0 +1,115 @@
+package HospitalManagementSystem;
+
+import java.sql.*;
+import java.util.Scanner;
+
+public class HospitalManagementSystem {
+    private static final String url = "jdbc:mysql://localhost:3306/hospital";
+    private static final String username = "root";
+    private static final String password = "Thabassum@2004";
+
+    public static void main(String[] args) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        Scanner sc = new Scanner(System.in);
+        Patients patients;
+        Doctors doctors;
+        Connection connection;
+        try {
+            connection = DriverManager.getConnection(url, username, password);
+            patients = new Patients(connection, sc);
+            doctors = new Doctors(connection);
+            while (true) {
+                System.out.println("HOSPITAL MANAGEMENT SYSTEM");
+                System.out.println("1. Add Patient");
+                System.out.println("2. View Patients");
+                System.out.println("3. View Doctors");
+                System.out.println("4. Book an Appointment");
+                System.out.println("5. Exit");
+                System.out.println("Enter your choice :");
+                int choice = sc.nextInt();
+                sc.nextLine(); // Consume the newline character after int input
+                switch (choice) {
+                    case 1:
+                        patients.addPatient();
+                        System.out.println();
+                        break;
+                    case 2:
+                        patients.viewPatient();
+                        System.out.println();
+                        break;
+                    case 3:
+                        doctors.viewDoctors();
+                        System.out.println();
+                        break;
+                    case 4:
+                        bookAppointment(patients, doctors, connection, sc);
+                        System.out.println();
+                        break;
+                    case 5:
+                        System.out.println("Thank you for using Hospital Management System");
+                        return;
+                    default:
+                        System.out.println("Invalid choice, Please try again");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void bookAppointment(Patients patients, Doctors doctors, Connection connection, Scanner sc) {
+        System.out.println("Enter patient ID: ");
+        int patientID = sc.nextInt();
+        sc.nextLine(); // Consume the leftover newline character
+        System.out.println("Enter doctor ID: ");
+        int doctorID = sc.nextInt();
+        sc.nextLine(); // Consume the leftover newline character
+        System.out.println("Enter appointment date (YYYY-MM-DD): ");
+        String appointmentDate = sc.nextLine(); // Use nextLine to read the entire date string
+
+        if (patients.getPatientById(patientID) && doctors.getDoctorById(doctorID)) {
+            if (checkDoctorAvailability(doctorID, appointmentDate, connection)) {
+                String sql = "INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (?,?,?)";
+                try {
+                    PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setInt(1, patientID);
+                    ps.setInt(2, doctorID);
+                    ps.setString(3, appointmentDate);
+                    int rowsAffected = ps.executeUpdate();
+                    if (rowsAffected > 0) {
+                        System.out.println("Appointment Booked Successfully");
+                    } else {
+                        System.out.println("Appointment Booking Failed");
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                System.out.println("Doctor is not available on the given date");
+            }
+        } else {
+            System.out.println("Either Doctor or Patient does not exist");
+        }
+    }
+
+    public static boolean checkDoctorAvailability(int doctorId, String appointmentDate, Connection connection) {
+        String sql = "SELECT COUNT(*) FROM appointments WHERE doctor_id=? AND appointment_date=?";
+        try {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1, doctorId);
+            ps.setString(2, appointmentDate);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                return count == 0; // Return true if no appointments exist for the given date
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+}
